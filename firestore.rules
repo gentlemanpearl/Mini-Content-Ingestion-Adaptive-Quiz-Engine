@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * DATABASE DOCUMENTATION
+     * 
+     * Core Philosophy:
+     * This ruleset implements a robust, owner-centric security model designed for an educational content 
+     * processing pipeline. It segregates administrative data (SourceDocuments, ContentChunks) from 
+     * public-facing data (QuizQuestions) and private student progress (StudentAnswers).
+     * 
+     * Data Structure:
+     * 1. Admin/Creator Space: /users/{userId}/... - Contains uploaded PDFs and extracted text chunks.
+     * 2. Public Content: /quizQuestions/{id} - Generated educational content accessible to all students.
+     * 3. Student Space: /students/{externalAuthId}/... - Private student profiles and their quiz history.
+     * 
+     * Key Security Decisions:
+     * - Path-Based Ownership: User-specific data is nested under paths containing their UID, 
+     *   allowing for efficient and secure rules that match path variables to request.auth.uid.
+     * - Public Read/Private Write: Quiz questions are publicly readable but only modifiable by 
+     *   the original content creator who owns the source material.
+     * - Denormalization for Authorization: To optimize performance and ensure rule independence, 
+     *   ownership IDs are denormalized into top-level collections.
+     * 
+     * Structural Segregation:
+     * Content creation and management are strictly separated from consumption. Students have no access 
+     * to the raw SourceDocuments or ContentChunks, protecting the intellectual property and processing 
+     * logic of the educational platform.
+     */
+
+    // --- Global Helper Functions ---
+
+    /** Checks if the user is authenticated via any supported provider (password, anonymous). */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** Checks if the authenticated user matches the provided ID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Checks if the user is the owner and the document exists (for updates and deletes). */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for managing uploaded source PDF metadata.
+     * @path /users/{userId}/sourceDocuments/{sourceDocumentId}
+     * @allow (create) if auth UID is 'abc' and path is /users/abc/...
+     * @deny (list) if auth UID 'xyz' attempts to list /users/abc/sourceDocuments.
+     * @principle Path-based ownership ensures only the uploader can access or modify document metadata.
+     */
+    match /users/{userId}/sourceDocuments/{sourceDocumentId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == sourceDocumentId;
+      allow update, delete: if isExistingOwner(userId);
+
+      /**
+       * @description Rules for managing extracted text segments from a SourceDocument.
+       * @path /users/{userId}/sourceDocuments/{sourceDocumentId}/contentChunks/{contentChunkId}
+       * @allow (update) if auth UID matches the parent user path.
+       * @deny (create) if the internal sourceDocumentId does not match the path.
+       * @principle Hierarchical ownership ensures data consistency between path and content.
+       */
+      match /contentChunks/{contentChunkId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.sourceDocumentId == sourceDocumentId;
+        allow update, delete: if isExistingOwner(userId);
+      }
+    }
+
+    /**
+     * @description Rules for publicly accessible quiz questions.
+     * @path /quizQuestions/{quizQuestionId}
+     * @allow (list) for any authenticated student or creator.
+     * @deny (delete) if the user is not the original creator (verified by denormalized ownerId).
+     * @principle Public consumption with owner-only administrative control.
+     */
+    match /quizQuestions/{quizQuestionId} {
+      // Students and creators can read all questions
+      allow get, list: if isSignedIn();
+
+      // CRITICAL: The 'QuizQuestion' entity schema is missing 'ownerId' or 'authorId' fields 
+      // in the properties list, though the reasoning specifies they should exist.
+      // We enforce ownership via the 'ownerId' field described in the architecture reasoning.
+      
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid && resource != null;
+      
+      // TODO: Ensure the frontend/backend provides 'ownerId' on QuizQuestion documents.
+    }
+
+    /**
+     * @description Rules for student profile information.
+     * @path /students/{externalAuthId}
+     * @allow (create) if the student is initializing their own profile matching their Auth UID.
+     * @deny (get) if one student attempts to view another student's private profile.
+     * @principle Self-creation and strict path-based ownership for student privacy.
+     */
+    match /students/{externalAuthId} {
+      allow get: if isOwner(externalAuthId);
+      allow list: if false; // Students should not be able to list other student profiles.
+      allow create: if isOwner(externalAuthId);
+      allow update: if isExistingOwner(externalAuthId);
+      allow delete: if false; // Profiles are typically persistent; manual deletion only.
+
+      /**
+       * @description Rules for recording and viewing a student's quiz performance.
+       * @path /students/{externalAuthId}/studentAnswers/{studentAnswerId}
+       * @allow (create) if the student is submitting their own answer.
+       * @deny (update) to prevent students from changing past answers (if enforced by app).
+       * @principle Ensures performance data is private and tied directly to the student's identity.
+       */
+      match /studentAnswers/{studentAnswerId} {
+        allow get, list: if isOwner(externalAuthId);
+        allow create: if isOwner(externalAuthId) && request.resource.data.studentId == externalAuthId;
+        
+        // Updates and deletes are allowed by the owner in this prototype but could be restricted further.
+        allow update, delete: if isExistingOwner(externalAuthId);
+      }
+    }
+  }
+}
