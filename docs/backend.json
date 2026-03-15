@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "SourceDocument": {
@@ -225,7 +226,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {
@@ -327,6 +329,6 @@
         }
       }
     ],
-    "reasoning": "The recommended Firestore structure is designed with a strong emphasis on Authorization Independence, Structural Segregation, and Path-Based Ownership to ensure robust security rules, efficient querying, and simplified debugging. \n\n**Authorization Independence (CRITICAL):**\n1.  **Denormalization of Ownership:** For `ContentChunk` documents, the `ownerId` and `sourceDocumentId` from the parent `SourceDocument` are explicitly denormalized into each `ContentChunk` document. This allows security rules to evaluate ownership (e.g., `request.auth.uid == resource.data.ownerId`) directly on the `ContentChunk` document itself, eliminating the need for expensive and complex `get()` calls to the parent `SourceDocument`. This approach is crucial for enabling atomic operations like batch writes or transactions across related documents without breaking security validations.\n2.  **Denormalization for Quiz Questions:** `QuizQuestion` documents, though publicly readable, still require an `ownerId` for management (creation, updates, deletion). This `ownerId` is denormalized from the `SourceDocument` (via `ContentChunk`). Additionally, `grade`, `subject`, and `sourceDocumentId` from the `ContentChunk` are denormalized into `QuizQuestion` documents. This allows public quiz retrieval queries to filter by these attributes (e.g., `grade=1`, `subject='Math'`) directly on the `quizQuestions` collection without needing to fetch data from `ContentChunk` or `SourceDocument` documents for rule evaluation.\n\n**QAPs (Rules are not Filters):**\n1.  **Structural Segregation:** The most significant strategy for QAPs is segregating administrative/content-creation data from public/student-facing data:\n    *   **`/users/{userId}/sourceDocuments` and `/users/{userId}/sourceDocuments/{sourceDocumentId}/contentChunks`**: These collections are strictly user-owned and managed. Security rules will enforce `request.auth.uid == userId` (from the path variable) for all operations. Queries within these paths automatically respect the `userId`, making rules simple and preventing data leakage.\n    *   **`/quizQuestions`**: This is a top-level collection designed for public consumption. Documents here are readable by any authenticated (or even anonymous, if rules permit) user, enabling efficient `list` operations (quizzes for students). The `ownerId` within each `QuizQuestion` document is used *only* for write/update/delete permissions, not for read access. This allows clients to query for quizzes by `topic`, `difficulty`, `grade`, and `subject` (all denormalized into `QuizQuestion`) without security rules needing to filter results, as read access is broadly granted.\n    *   **`/students/{externalAuthId}` and `/students/{externalAuthId}/studentAnswers`**: These collections are designed for private, user-specific data. The `externalAuthId` in the path explicitly matches `request.auth.uid`, making authorization rules trivial (`request.auth.uid == externalAuthId`). Queries within these paths are inherently secure, adhering to QAPs.\n\n**Other Principles:**\n*   **Clarity of Intent**: The hierarchical path structure clearly delineates administrative content, publicly available quizzes, and student-specific performance data.\n*   **DBAC**: Roles are implicitly managed through `ownerId` fields in documents and `externalAuthId` matching `request.auth.uid` in paths, avoiding custom claims.\n*   **Invariants**: Denormalized fields (`ownerId`, `sourceDocumentId`, `grade`, `subject` in `ContentChunk` and `QuizQuestion`) support the integrity of ownership and content context, simplifying rule enforcement and ensuring data consistency."
+    "reasoning": "The recommended Firestore structure is designed with a strong emphasis on Authorization Independence, Structural Segregation, and Path-Based Ownership."
   }
 }
