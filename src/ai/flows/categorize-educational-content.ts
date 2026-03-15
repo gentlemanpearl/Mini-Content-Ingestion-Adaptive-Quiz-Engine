@@ -35,9 +35,6 @@ const categorizeEducationalContentPrompt = ai.definePrompt({
 
 Consider the complexity of the language, the concepts discussed, and common educational curricula to make your determination.
 
-Output your answer in a JSON object with the following structure:
-{{jsonSchema CategorizeEducationalContentOutputSchema}}
-
 Text from Chunk:
 {{{textChunk}}}
 
