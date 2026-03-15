@@ -7,21 +7,31 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
-import { Upload, FileText, Settings, Database, Play, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Database, Play, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useUser, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { doc, collection, serverTimestamp } from 'firebase/firestore';
+import { categorizeEducationalContent } from '@/ai/flows/categorize-educational-content';
+import { generateQuizQuestions } from '@/ai/flows/generate-quiz-questions-flow';
 
 export default function DashboardPage() {
   const [fileName, setFileName] = useState("");
   const [textContent, setTextContent] = useState("");
   const [isIngesting, setIsIngesting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [sourceId, setSourceId] = useState<string | null>(null);
+  const [sourceDocId, setSourceDocId] = useState<string | null>(null);
   const [chunksCount, setChunksCount] = useState(0);
   const [questionsCount, setQuestionsCount] = useState(0);
+  
   const { toast } = useToast();
+  const db = useFirestore();
+  const { user } = useUser();
 
   const handleIngest = async () => {
+    if (!user) {
+      toast({ title: "Auth Required", description: "Please sign in to ingest content.", variant: "destructive" });
+      return;
+    }
     if (!fileName || !textContent) {
       toast({ title: "Error", description: "Please provide a file name and text content.", variant: "destructive" });
       return;
@@ -29,17 +39,52 @@ export default function DashboardPage() {
 
     setIsIngesting(true);
     try {
-      const res = await fetch('/api/ingest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName, text: textContent }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      const sourceId = `SRC_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      const sourceRef = doc(db, 'users', user.uid, 'sourceDocuments', sourceId);
+      
+      const sourceData = {
+        id: sourceId,
+        filename: fileName,
+        uploadDate: new Date().toISOString(),
+        fileSizeKB: Math.round(textContent.length / 1024),
+        mimeType: 'text/plain',
+        status: 'processing'
+      };
 
-      setSourceId(data.sourceId);
-      setChunksCount(data.chunksCount);
-      toast({ title: "Success", description: `Ingested ${data.chunksCount} content chunks.` });
+      setDocumentNonBlocking(sourceRef, sourceData, { merge: true });
+
+      const paragraphs = textContent.split('\n\n').filter((p: string) => p.trim().length > 50);
+      let localChunksCount = 0;
+
+      for (let i = 0; i < paragraphs.length; i++) {
+        const chunkText = paragraphs[i];
+        const category = await categorizeEducationalContent({
+          textChunk: chunkText,
+          fileName: fileName,
+        });
+
+        const chunkId = `CH_${i + 1}`;
+        const chunkRef = doc(db, 'users', user.uid, 'sourceDocuments', sourceId, 'contentChunks', chunkId);
+        
+        const chunkData = {
+          id: chunkId,
+          sourceDocumentId: sourceId,
+          chunkIndex: i + 1,
+          grade: category.grade,
+          subject: category.subject,
+          topic: category.topic,
+          text: chunkText,
+          wordCount: chunkText.split(/\s+/).length,
+          extractionDate: new Date().toISOString()
+        };
+
+        setDocumentNonBlocking(chunkRef, chunkData, { merge: true });
+        localChunksCount++;
+      }
+
+      setSourceDocId(sourceId);
+      setChunksCount(localChunksCount);
+      toast({ title: "Success", description: `Ingested ${localChunksCount} content chunks.` });
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
@@ -48,19 +93,56 @@ export default function DashboardPage() {
   };
 
   const handleGenerate = async () => {
-    if (!sourceId) return;
+    if (!user || !sourceDocId) return;
     setIsGenerating(true);
     try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceId }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      // In a real app, we'd fetch the chunks from Firestore here. 
+      // For this prototype, we'll re-use the text content if it's still in state.
+      const paragraphs = textContent.split('\n\n').filter((p: string) => p.trim().length > 50);
+      let totalGenerated = 0;
 
-      setQuestionsCount(data.questionsCount);
-      toast({ title: "Success", description: `Generated ${data.questionsCount} quiz questions.` });
+      for (let i = 0; i < paragraphs.length; i++) {
+        const chunkText = paragraphs[i];
+        const category = await categorizeEducationalContent({
+          textChunk: chunkText,
+          fileName: fileName,
+        });
+
+        const questions = await generateQuizQuestions({
+          sourceId: sourceDocId,
+          chunkId: `CH_${i + 1}`,
+          grade: category.grade,
+          subject: category.subject,
+          topic: category.topic,
+          text: chunkText,
+        });
+
+        for (const q of questions) {
+          const qId = `Q_${Math.random().toString(36).substr(2, 9)}`;
+          const qRef = doc(db, 'quizQuestions', qId);
+          
+          const qData = {
+            id: qId,
+            sourceChunkId: `CH_${i + 1}`,
+            questionText: q.question,
+            questionType: q.type,
+            options: q.options || [],
+            correctAnswer: q.answer,
+            difficulty: q.difficulty,
+            generatedDate: new Date().toISOString(),
+            ownerId: user.uid, // Required by security rules
+            subject: category.subject,
+            topic: category.topic,
+            grade: category.grade
+          };
+
+          setDocumentNonBlocking(qRef, qData, { merge: true });
+          totalGenerated++;
+        }
+      }
+
+      setQuestionsCount(totalGenerated);
+      toast({ title: "Success", description: `Generated ${totalGenerated} quiz questions.` });
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
@@ -85,7 +167,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Step 1: Ingestion */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -116,15 +197,14 @@ export default function DashboardPage() {
               </div>
               <Button 
                 onClick={handleIngest} 
-                disabled={isIngesting || !textContent}
+                disabled={isIngesting || !textContent || !user}
                 className="w-full h-12 text-lg"
               >
-                {isIngesting ? "Processing..." : "Ingest & Chunk Content"}
+                {!user ? "Please Log In" : isIngesting ? "Processing..." : "Ingest & Chunk Content"}
               </Button>
             </CardContent>
           </Card>
 
-          {/* Step 2: Management */}
           <div className="space-y-8">
             <Card>
               <CardHeader>
@@ -137,7 +217,7 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Source ID:</span>
-                    <span className="font-mono font-medium">{sourceId || "N/A"}</span>
+                    <span className="font-mono font-medium">{sourceDocId || "N/A"}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Content Chunks:</span>
@@ -153,7 +233,7 @@ export default function DashboardPage() {
                   <Button 
                     variant="secondary"
                     className="w-full h-12"
-                    disabled={!sourceId || isGenerating}
+                    disabled={!sourceDocId || isGenerating}
                     onClick={handleGenerate}
                   >
                     {isGenerating ? "AI Working..." : "Generate AI Quiz Questions"}

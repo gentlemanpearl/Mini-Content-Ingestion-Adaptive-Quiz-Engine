@@ -9,53 +9,72 @@ import { Progress } from '@/components/ui/progress';
 import { GraduationCap, BrainCircuit, CheckCircle2, XCircle, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { useFirestore, useUser, useCollection, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 export default function QuizPage() {
-  const [questions, setQuestions] = useState<any[]>([]);
+  const { user } = useUser();
+  const db = useFirestore();
+  const { toast } = useToast();
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [feedback, setFeedback] = useState<any>(null);
   const [quizFinished, setQuizFinished] = useState(false);
-  const [skillLevel, setSkillLevel] = useState(50);
-  const { toast } = useToast();
 
-  const fetchQuiz = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/quiz');
-      const data = await res.json();
-      setQuestions(data.questions);
-      setSkillLevel(data.studentSkill);
-    } catch (err) {
-      toast({ title: "Error", description: "Failed to load quiz.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Memoize Firestore references
+  const questionsQuery = useMemoFirebase(() => collection(db, 'quizQuestions'), [db]);
+  const { data: questions, isLoading: questionsLoading } = useCollection(questionsQuery);
 
-  useEffect(() => {
-    fetchQuiz();
-  }, []);
+  const studentProfileRef = useMemoFirebase(() => 
+    user ? doc(db, 'students', user.uid) : null
+  , [db, user]);
+  const { data: profile, isLoading: profileLoading } = useDoc(studentProfileRef);
+
+  const skillLevel = profile?.currentSkillLevel || 50;
 
   const handleSubmit = async () => {
-    if (!selectedAnswer) return;
+    if (!selectedAnswer || !user || !questions) return;
+    const currentQ = questions[currentIndex];
+    
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/submit-answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentId: 'DEMO_USER',
-          questionId: questions[currentIndex].id,
-          selectedAnswer
-        }),
+      const isCorrect = selectedAnswer.trim().toLowerCase() === currentQ.correctAnswer.trim().toLowerCase();
+      
+      const answerId = `ANS_${Date.now()}`;
+      const answerRef = doc(db, 'students', user.uid, 'studentAnswers', answerId);
+      
+      const answerData = {
+        id: answerId,
+        studentId: user.uid,
+        quizQuestionId: currentQ.id,
+        submittedAnswer: selectedAnswer,
+        isCorrect: isCorrect,
+        submittedAt: new Date().toISOString(),
+        difficultyAtTimeOfAnswer: currentQ.difficulty
+      };
+
+      setDocumentNonBlocking(answerRef, answerData, { merge: true });
+
+      // Update Profile Skill Level
+      const delta = isCorrect ? 5 : -5;
+      const newSkill = Math.max(0, Math.min(100, skillLevel + delta));
+      
+      const profileUpdate = {
+        id: user.uid,
+        externalAuthId: user.uid,
+        currentSkillLevel: newSkill,
+        updatedAt: new Date().toISOString()
+      };
+
+      setDocumentNonBlocking(doc(db, 'students', user.uid), profileUpdate, { merge: true });
+
+      setFeedback({
+        correct: isCorrect,
+        correctAnswer: currentQ.correctAnswer
       });
-      const data = await res.json();
-      setFeedback(data);
-      setSkillLevel(data.newSkillLevel);
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: "Error", description: "Submission failed.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
@@ -63,7 +82,7 @@ export default function QuizPage() {
   };
 
   const handleNext = () => {
-    if (currentIndex < questions.length - 1) {
+    if (questions && currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setSelectedAnswer("");
       setFeedback(null);
@@ -72,21 +91,21 @@ export default function QuizPage() {
     }
   };
 
-  if (isLoading) {
+  if (questionsLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-secondary/20 flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
             <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
-            <p className="text-muted-foreground font-headline">Generating adaptive quiz...</p>
+            <p className="text-muted-foreground font-headline">Loading adaptive quiz...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  if (questions.length === 0) {
+  if (!questions || questions.length === 0) {
     return (
       <div className="min-h-screen bg-secondary/20 flex flex-col">
         <Navbar />
@@ -96,6 +115,22 @@ export default function QuizPage() {
             <CardTitle className="mb-2">No Content Available</CardTitle>
             <CardDescription className="mb-6">Please upload and process some educational materials in the Admin Portal first.</CardDescription>
             <Button asChild><a href="/dashboard">Go to Ingestion</a></Button>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-secondary/20 flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <Card className="max-w-md text-center p-8">
+            <GraduationCap className="h-12 w-12 text-primary mx-auto mb-4" />
+            <CardTitle className="mb-2">Authentication Required</CardTitle>
+            <CardDescription className="mb-6">Please sign in to take quizzes and track your progress.</CardDescription>
+            <Button variant="outline">Sign In</Button>
           </Card>
         </div>
       </div>
@@ -135,17 +170,17 @@ export default function QuizPage() {
                   {currentQ.difficulty} Difficulty
                 </Badge>
                 <Badge variant="secondary">
-                  {currentQ.type}
+                  {currentQ.questionType}
                 </Badge>
               </div>
               <CardTitle className="text-2xl leading-relaxed text-foreground font-body">
-                {currentQ.question}
+                {currentQ.questionText}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {currentQ.type === 'MCQ' ? (
+              {currentQ.questionType === 'MCQ' ? (
                 <div className="grid gap-3">
-                  {currentQ.options.map((opt: string, i: number) => (
+                  {currentQ.options?.map((opt: string, i: number) => (
                     <button
                       key={i}
                       disabled={!!feedback}
@@ -209,10 +244,10 @@ export default function QuizPage() {
             </div>
             <CardTitle className="text-3xl mb-4">Quiz Completed!</CardTitle>
             <CardDescription className="text-lg mb-8">
-              Great job! Your current skill profile has been updated to <span className="font-bold text-primary">{skillLevel}%</span> based on your performance.
+              Great job! Your current skill profile has been updated based on your performance.
             </CardDescription>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={() => window.location.reload()} size="lg">Try Another Topic</Button>
+              <Button onClick={() => window.location.reload()} size="lg">Try Again</Button>
               <Button variant="outline" size="lg" asChild><a href="/">Back Home</a></Button>
             </div>
           </Card>

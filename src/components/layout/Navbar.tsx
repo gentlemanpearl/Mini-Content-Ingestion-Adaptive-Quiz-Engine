@@ -3,9 +3,22 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookOpen, BrainCircuit, LayoutDashboard, GraduationCap } from 'lucide-react';
+import { BrainCircuit, LayoutDashboard, GraduationCap } from 'lucide-react';
+import { useAuth, useUser, initiateAnonymousSignIn } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 export function Navbar() {
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+
+  const handleLogin = () => {
+    initiateAnonymousSignIn(auth);
+  };
+
+  const handleLogout = () => {
+    signOut(auth);
+  };
+
   return (
     <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,7 +43,13 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm">Log In</Button>
+            {isUserLoading ? (
+              <span className="text-sm text-muted-foreground animate-pulse">Checking auth...</span>
+            ) : user ? (
+              <Button variant="outline" size="sm" onClick={handleLogout}>Log Out</Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={handleLogin}>Demo Login</Button>
+            )}
             <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">Get Started</Button>
           </div>
         </div>
