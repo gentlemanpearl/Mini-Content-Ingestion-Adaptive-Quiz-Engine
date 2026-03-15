@@ -1,9 +1,8 @@
-
 "use client";
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, LayoutDashboard, GraduationCap, LogIn } from 'lucide-react';
+import { BrainCircuit, LayoutDashboard, GraduationCap, LogIn, Activity } from 'lucide-react';
 import { useAuth, useUser, initiateAnonymousSignIn, initiateGoogleSignIn } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import {
@@ -40,7 +39,10 @@ export function Navbar() {
               Home
             </Link>
             <Link href="/dashboard" className="text-sm font-medium hover:text-primary transition-colors text-muted-foreground flex items-center gap-1.5">
-              <LayoutDashboard className="h-4 w-4" /> Admin Portal
+              <LayoutDashboard className="h-4 w-4" /> Creator Portal
+            </Link>
+            <Link href="/admin" className="text-sm font-medium hover:text-primary transition-colors text-muted-foreground flex items-center gap-1.5">
+              <Activity className="h-4 w-4" /> Activity Monitor
             </Link>
             <Link href="/quiz" className="text-sm font-medium hover:text-primary transition-colors text-muted-foreground flex items-center gap-1.5">
               <GraduationCap className="h-4 w-4" /> Student Quiz
@@ -73,7 +75,10 @@ export function Navbar() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard">Dashboard</Link>
+                    <Link href="/dashboard">Creator Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">Activity Monitor</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/quiz">Take Quiz</Link>
