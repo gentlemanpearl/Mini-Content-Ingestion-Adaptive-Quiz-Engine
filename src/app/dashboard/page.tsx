@@ -22,8 +22,9 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, orderBy } from 'firebase/firestore';
+import { doc, collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { categorizeEducationalContent } from '@/ai/flows/categorize-educational-content';
+import { generateQuizQuestions } from '@/ai/flows/generate-quiz-questions-flow';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -39,7 +40,6 @@ export default function DashboardPage() {
   const db = useFirestore();
   const { user } = useUser();
 
-  // Real-time source documents for the current user
   const sourceDocsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
@@ -54,7 +54,7 @@ export default function DashboardPage() {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setFileName(file.name.split('.')[0]); // Use filename as default title
+      setFileName(file.name.split('.')[0]);
       
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -66,10 +66,7 @@ export default function DashboardPage() {
   };
 
   const handleIngest = async () => {
-    if (!user) {
-      toast({ title: "Auth Required", description: "Please sign in to ingest content.", variant: "destructive" });
-      return;
-    }
+    if (!user) return;
     if (!fileName || !textContent) {
       toast({ title: "Input Required", description: "Please provide a document title and content.", variant: "destructive" });
       return;
@@ -91,7 +88,6 @@ export default function DashboardPage() {
 
       setDocumentNonBlocking(sourceRef, sourceData, { merge: true });
 
-      // Split into paragraphs for processing
       const paragraphs = textContent.split('\n\n').filter((p: string) => p.trim().length > 50);
       
       for (let i = 0; i < paragraphs.length; i++) {
@@ -120,27 +116,59 @@ export default function DashboardPage() {
       }
 
       setDocumentNonBlocking(sourceRef, { ...sourceData, status: 'processed' }, { merge: true });
-      
-      toast({ title: "Pipeline Success", description: `Ingested ${paragraphs.length} educational segments.` });
+      toast({ title: "Ingestion Complete", description: `Extracted ${paragraphs.length} educational segments.` });
       setFileName("");
       setTextContent("");
       setSelectedFile(null);
     } catch (err: any) {
-      toast({ title: "Pipeline Error", description: err.message, variant: "destructive" });
+      toast({ title: "Ingestion Failed", description: err.message, variant: "destructive" });
     } finally {
       setIsIngesting(false);
     }
   };
 
-  const handleGenerateQuestions = async (docId: string) => {
+  const handleGenerateQuestions = async (sourceId: string) => {
     if (!user) return;
     setIsGenerating(true);
     try {
-      toast({ title: "AI Analysis", description: "Evaluating segments and generating quiz questions..." });
-      // Logic for question generation across chunks would go here
-      setTimeout(() => {
-        toast({ title: "Generation Complete", description: "New questions are now live in the student pool." });
-      }, 2000);
+      toast({ title: "AI Generation", description: "Analyzing segments to generate adaptive questions..." });
+      
+      const chunksRef = collection(db, 'users', user.uid, 'sourceDocuments', sourceId, 'contentChunks');
+      const chunksSnapshot = await getDocs(chunksRef);
+      
+      let totalQuestions = 0;
+      for (const chunkDoc of chunksSnapshot.docs) {
+        const chunk = chunkDoc.data();
+        const questions = await generateQuizQuestions({
+          sourceId: sourceId,
+          chunkId: chunk.id,
+          grade: chunk.grade,
+          subject: chunk.subject,
+          topic: chunk.topic,
+          text: chunk.text,
+        });
+
+        questions.forEach((q) => {
+          const qId = `Q_${Math.random().toString(36).substr(2, 9)}`;
+          const qRef = doc(db, 'quizQuestions', qId);
+          setDocumentNonBlocking(qRef, {
+            id: qId,
+            sourceChunkId: chunk.id,
+            sourceDocumentId: sourceId,
+            questionText: q.question,
+            questionType: q.type,
+            options: q.options || [],
+            correctAnswer: q.answer,
+            difficulty: q.difficulty,
+            generatedDate: new Date().toISOString()
+          }, { merge: true });
+          totalQuestions++;
+        });
+      }
+
+      toast({ title: "Success", description: `Generated ${totalQuestions} new questions for the pool.` });
+    } catch (err: any) {
+      toast({ title: "Generation Error", description: err.message, variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
@@ -150,7 +178,7 @@ export default function DashboardPage() {
     if (!user) return;
     const docRef = doc(db, 'users', user.uid, 'sourceDocuments', docId);
     deleteDocumentNonBlocking(docRef);
-    toast({ title: "Removed", description: "Document deleted from cloud storage." });
+    toast({ title: "Removed", description: "Document deleted from repository." });
   };
 
   return (
@@ -172,7 +200,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid lg:grid-cols-12 gap-8">
-          {/* Document Management */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="border-none shadow-xl bg-white/50 backdrop-blur-sm">
               <CardHeader className="border-b">
@@ -185,7 +212,7 @@ export default function DashboardPage() {
               <CardContent className="p-0">
                 <div className="divide-y max-h-[500px] overflow-auto">
                   {isDocsLoading ? (
-                    <div className="p-12 text-center text-muted-foreground animate-pulse">Synchronizing documents...</div>
+                    <div className="p-12 text-center text-muted-foreground animate-pulse">Synchronizing...</div>
                   ) : sourceDocs && sourceDocs.length > 0 ? (
                     sourceDocs.map((doc) => (
                       <div key={doc.id} className="p-4 hover:bg-accent/5 transition-colors group">
@@ -193,30 +220,24 @@ export default function DashboardPage() {
                           <h4 className="font-bold text-sm truncate max-w-[180px]">{doc.filename}</h4>
                           <Badge 
                             variant={doc.status === 'processed' ? 'default' : 'secondary'} 
-                            className={cn(
-                              "text-[10px] h-5",
-                              doc.status === 'processing' && "animate-pulse"
-                            )}
+                            className={cn("text-[10px] h-5", doc.status === 'processing' && "animate-pulse")}
                           >
                             {doc.status}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-4">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(doc.uploadDate).toLocaleDateString()}
-                          </span>
+                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(doc.uploadDate).toLocaleDateString()}</span>
                           <span className="bg-secondary/50 px-1.5 py-0.5 rounded">{doc.fileSizeKB}KB</span>
                         </div>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 
                             variant="secondary" 
                             size="sm" 
-                            className="h-8 text-xs flex-1 shadow-sm"
+                            className="h-8 text-xs flex-1"
                             disabled={doc.status !== 'processed' || isGenerating}
                             onClick={() => handleGenerateQuestions(doc.id)}
                           >
-                            <Play className="h-3 w-3 mr-1" /> Quiz
+                            {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3 mr-1" />} Generate Quiz
                           </Button>
                           <Button 
                             variant="ghost" 
@@ -232,180 +253,96 @@ export default function DashboardPage() {
                   ) : (
                     <div className="p-12 text-center text-muted-foreground space-y-3">
                       <FileUp className="h-10 w-10 mx-auto opacity-10" />
-                      <p className="text-sm font-medium">Your repository is empty.</p>
-                      <p className="text-xs">Upload content to begin.</p>
+                      <p className="text-sm">Your repository is empty.</p>
                     </div>
                   )}
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="bg-primary text-primary-foreground border-none shadow-2xl overflow-hidden relative">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Sparkles className="h-20 w-20" />
-              </div>
-              <CardHeader>
-                <CardTitle className="text-sm uppercase tracking-tighter">Engine Health</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between text-xs">
-                  <span>Latency</span>
-                  <span className="font-mono">~1.2s</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span>Sync Status</span>
-                  <span className="flex items-center gap-2">
-                    Live <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
-          {/* Ingestion & Upload */}
           <div className="lg:col-span-8">
-            <Card className="border-none shadow-2xl bg-white h-full overflow-hidden">
+            <Card className="border-none shadow-2xl bg-white overflow-hidden">
               <CardHeader className="bg-accent/5 pb-8">
                 <CardTitle className="flex items-center gap-2 font-headline text-2xl">
                   <Upload className="h-7 w-7 text-accent" />
                   Smart Content Ingestion
                 </CardTitle>
                 <CardDescription className="text-base">
-                  Upload textbook excerpts or paste raw educational text. Our AI will automatically structure it for adaptive learning.
+                  Upload textbook excerpts or paste raw educational text. AI will automatically structure it.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-8 pt-8">
                 <div className="grid md:grid-cols-2 gap-6">
-                  {/* File Upload Zone */}
                   <div 
                     className={cn(
-                      "border-2 border-dashed rounded-3xl p-8 transition-all group relative flex flex-col items-center justify-center min-h-[160px]",
+                      "border-2 border-dashed rounded-3xl p-8 transition-all group flex flex-col items-center justify-center min-h-[160px]",
                       selectedFile ? "border-accent bg-accent/5" : "border-secondary hover:border-accent/50 cursor-pointer"
                     )}
                     onClick={() => !selectedFile && fileInputRef.current?.click()}
                   >
-                    <input 
-                      type="file" 
-                      ref={fileInputRef}
-                      className="hidden" 
-                      onChange={handleFileChange}
-                      accept=".txt,.md"
-                    />
+                    <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept=".txt,.md" />
                     {selectedFile ? (
-                      <div className="text-center animate-in fade-in zoom-in duration-300">
+                      <div className="text-center">
                         <div className="bg-accent/20 p-3 rounded-2xl inline-block mb-3">
                           <CheckCircle2 className="h-8 w-8 text-accent" />
                         </div>
                         <p className="font-bold text-sm mb-1">{selectedFile.name}</p>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-6 text-[10px] text-muted-foreground hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedFile(null);
-                            setFileName("");
-                            setTextContent("");
-                          }}
-                        >
-                          Change File
-                        </Button>
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}>Change</Button>
                       </div>
                     ) : (
                       <>
-                        <FileUp className="h-10 w-10 text-muted-foreground mb-4 group-hover:scale-110 group-hover:text-accent transition-all" />
+                        <FileUp className="h-10 w-10 text-muted-foreground mb-4 group-hover:scale-110 transition-all" />
                         <p className="text-sm font-bold">Select Document</p>
-                        <p className="text-[11px] text-muted-foreground mt-1">Supports .txt, .md</p>
                       </>
                     )}
                   </div>
 
-                  {/* Document Details */}
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Document Title</label>
-                      <Input 
-                        placeholder="e.g., Physics Fundamentals" 
-                        value={fileName}
-                        onChange={(e) => setFileName(e.target.value)}
-                        className="h-12 border-secondary focus:ring-accent rounded-xl"
-                      />
-                    </div>
-                    <div className="p-4 bg-secondary/20 rounded-2xl flex items-center gap-3">
-                      <div className="p-2 bg-white rounded-lg shadow-sm">
-                        <Sparkles className="h-4 w-4 text-accent" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <p className="text-[11px] font-bold text-muted-foreground uppercase">AI Processing</p>
-                        <p className="text-xs font-medium">Automatic chunking enabled</p>
-                      </div>
+                      <Input placeholder="e.g., Biology Basics" value={fileName} onChange={(e) => setFileName(e.target.value)} className="h-12 rounded-xl" />
                     </div>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Raw Text Content</label>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {textContent.length > 0 ? `${textContent.length} characters` : 'Empty'}
-                    </Badge>
-                  </div>
+                  <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Raw Content</label>
                   <Textarea 
-                    placeholder="Document content will appear here after upload, or you can paste manually..." 
-                    className="min-h-[300px] font-body text-base leading-relaxed border-secondary focus:ring-accent rounded-3xl resize-none shadow-inner"
+                    placeholder="Paste or upload text..." 
+                    className="min-h-[300px] rounded-3xl resize-none shadow-inner"
                     value={textContent}
                     onChange={(e) => setTextContent(e.target.value)}
                   />
                 </div>
 
-                {/* Animated Action Button */}
-                <div className="pt-2">
-                  <Button 
-                    onClick={handleIngest} 
-                    disabled={isIngesting || !textContent || !user}
-                    className={cn(
-                      "w-full h-16 text-xl font-bold shadow-xl transition-all duration-300 relative overflow-hidden group rounded-2xl",
-                      isIngesting ? "bg-accent scale-[0.98]" : "hover:scale-[1.01] hover:shadow-accent/30 active:scale-95",
-                      !user && "opacity-50 grayscale"
-                    )}
-                  >
-                    {!user ? (
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5" />
-                        Sign In to Access Pipeline
-                      </div>
-                    ) : isIngesting ? (
-                      <div className="flex items-center gap-3">
-                        <Loader2 className="animate-spin h-6 w-6" />
-                        AI Extraction Active...
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        <Sparkles className="h-6 w-6 text-accent group-hover:rotate-12 transition-transform" />
-                        Launch Intelligence Pipeline
-                      </div>
-                    )}
-                    {/* Shimmer effect when not loading */}
-                    {!isIngesting && user && (
-                      <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
-                    )}
-                  </Button>
-                  <p className="text-center text-[10px] text-muted-foreground mt-4 italic">
-                    By launching, you agree to process this data through the Gemini 2.5 API.
-                  </p>
-                </div>
+                <Button 
+                  onClick={handleIngest} 
+                  disabled={isIngesting || !textContent || !user}
+                  className={cn(
+                    "w-full h-16 text-xl font-bold shadow-xl transition-all duration-300 relative overflow-hidden group rounded-2xl",
+                    isIngesting ? "bg-accent scale-[0.98]" : "hover:scale-[1.01] hover:shadow-accent/30 active:scale-95",
+                    !user && "opacity-50 grayscale"
+                  )}
+                >
+                  {!user ? (
+                    <div className="flex items-center gap-2"><AlertCircle className="h-5 w-5" /> Sign In to Access</div>
+                  ) : isIngesting ? (
+                    <div className="flex items-center gap-3"><Loader2 className="animate-spin h-6 w-6" /> Extracting...</div>
+                  ) : (
+                    <div className="flex items-center gap-3"><Sparkles className="h-6 w-6 text-accent" /> Launch Intelligence Pipeline</div>
+                  )}
+                  {!isIngesting && user && (
+                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
-
       <style jsx global>{`
-        @keyframes shimmer {
-          100% {
-            transform: translateX(100%);
-          }
-        }
+        @keyframes shimmer { 100% { transform: translateX(100%); } }
       `}</style>
     </div>
   );
