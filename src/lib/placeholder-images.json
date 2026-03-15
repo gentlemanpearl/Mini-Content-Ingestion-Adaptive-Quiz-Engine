@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "edu-hero",
+      "description": "Educational platform hero image",
+      "imageUrl": "https://picsum.photos/seed/edu1/1200/600",
+      "imageHint": "education library"
+    },
+    {
+      "id": "math-icon",
+      "description": "Mathematics subject icon",
+      "imageUrl": "https://picsum.photos/seed/math/200/200",
+      "imageHint": "mathematics numbers"
+    },
+    {
+      "id": "science-icon",
+      "description": "Science subject icon",
+      "imageUrl": "https://picsum.photos/seed/science/200/200",
+      "imageHint": "science plants"
+    },
+    {
+      "id": "english-icon",
+      "description": "English subject icon",
+      "imageUrl": "https://picsum.photos/seed/english/200/200",
+      "imageHint": "books grammar"
+    }
+  ]
 }
