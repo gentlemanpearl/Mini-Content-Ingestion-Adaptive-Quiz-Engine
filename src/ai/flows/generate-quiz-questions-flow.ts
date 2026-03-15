@@ -58,4 +58,20 @@ Content:
 Generate between 3 to 5 quiz questions for the above content. Ensure a mix of question types (MCQ, True/False, Fill in the blank).
 For MCQ questions, provide exactly four distinct options, with one being the correct answer.
 For True/False questions, clearly state whether the statement is true or false in the answer.
-For Fill-in-the-blank questions, indicate the blank with a single underscore like this: 
+For Fill-in-the-blank questions, indicate the blank with a single underscore like this: "___".`,
+});
+
+const generateQuizQuestionsFlow = ai.defineFlow(
+  {
+    name: 'generateQuizQuestionsFlow',
+    inputSchema: GenerateQuizQuestionsInputSchema,
+    outputSchema: GenerateQuizQuestionsOutputSchema,
+  },
+  async (input) => {
+    const { output } = await prompt(input);
+    if (!output) {
+      throw new Error('Failed to generate quiz questions.');
+    }
+    return output;
+  }
+);
