@@ -3,7 +3,6 @@
 import { useMemo } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { 
   Activity, 
   Users, 
@@ -12,8 +11,7 @@ import {
   XCircle, 
   TrendingUp, 
   BrainCircuit, 
-  History,
-  ArrowUpRight
+  History
 } from 'lucide-react';
 import { 
   useFirestore, 
@@ -44,14 +42,23 @@ import { Badge } from '@/components/ui/badge';
 
 export default function AdminActivityPage() {
   const db = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
 
-  // Global monitoring queries
-  const questionsQuery = useMemoFirebase(() => query(collection(db, 'quizQuestions')), [db]);
-  const studentsQuery = useMemoFirebase(() => query(collection(db, 'students')), [db]);
-  const recentAnswersQuery = useMemoFirebase(() => 
-    query(collectionGroup(db, 'studentAnswers'), orderBy('submittedAt', 'desc'), limit(15))
-  , [db]);
+  // Global monitoring queries - only created if user is authenticated
+  const questionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(db, 'quizQuestions'));
+  }, [db, user]);
+
+  const studentsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(db, 'students'));
+  }, [db, user]);
+
+  const recentAnswersQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collectionGroup(db, 'studentAnswers'), orderBy('submittedAt', 'desc'), limit(15));
+  }, [db, user]);
 
   const { data: questions } = useCollection(questionsQuery);
   const { data: students } = useCollection(studentsQuery);
@@ -86,6 +93,17 @@ export default function AdminActivityPage() {
       { name: 'Hard', count: counts.hard || 0 },
     ];
   }, [questions]);
+
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen bg-secondary/10">
+        <Navbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <p className="text-muted-foreground animate-pulse">Verifying credentials...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -6,14 +5,15 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { GraduationCap, BrainCircuit, CheckCircle2, XCircle, ArrowRight, Loader2, Sparkles, RotateCcw } from 'lucide-react';
+import { GraduationCap, BrainCircuit, CheckCircle2, XCircle, ArrowRight, Loader2, Sparkles, RotateCcw, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { useFirestore, useUser, useCollection, useDoc, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useCollection, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { collection, doc, query, limit } from 'firebase/firestore';
+import { Input } from '@/components/ui/input';
 
 export default function QuizPage() {
-  const { user } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
 
@@ -24,7 +24,11 @@ export default function QuizPage() {
   const [quizFinished, setQuizFinished] = useState(false);
 
   // Memoize Firestore references for real-time quiz data
-  const questionsQuery = useMemoFirebase(() => query(collection(db, 'quizQuestions'), limit(20)), [db]);
+  const questionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(db, 'quizQuestions'), limit(20));
+  }, [db, user]);
+  
   const { data: questions, isLoading: questionsLoading } = useCollection(questionsQuery);
 
   const studentProfileRef = useMemoFirebase(() => 
@@ -105,7 +109,7 @@ export default function QuizPage() {
     toast({ title: "Progress Reset", description: "Your skill level has been returned to baseline." });
   };
 
-  if (questionsLoading || profileLoading) {
+  if (isAuthLoading || questionsLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-secondary/20 flex flex-col">
         <Navbar />
@@ -145,9 +149,9 @@ export default function QuizPage() {
           <Card className="max-w-md text-center p-8 border-none shadow-2xl">
             <BrainCircuit className="h-16 w-16 text-accent mx-auto mb-6 opacity-20" />
             <CardTitle className="text-2xl mb-2 font-headline">Quiz Repository Empty</CardTitle>
-            <CardDescription className="mb-8 leading-relaxed">No questions have been generated yet. Head to the Admin Portal to process some educational content.</CardDescription>
+            <CardDescription className="mb-8 leading-relaxed">No questions have been generated yet. Head to the Creator Portal to process some educational content.</CardDescription>
             <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" asChild>
-              <a href="/dashboard">Admin Portal</a>
+              <a href="/dashboard">Creator Portal</a>
             </Button>
           </Card>
         </div>
@@ -202,15 +206,15 @@ export default function QuizPage() {
                   {currentQ.difficulty} Level
                 </Badge>
                 <Badge variant="secondary" className="px-3 py-1 font-medium">
-                  {currentQ.questionType}
+                  {currentQ.type}
                 </Badge>
               </div>
               <CardTitle className="text-2xl md:text-3xl leading-relaxed text-foreground font-body font-medium">
-                {currentQ.questionText}
+                {currentQ.question}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 flex-1">
-              {currentQ.questionType === 'MCQ' ? (
+              {currentQ.type === 'MCQ' ? (
                 <div className="grid gap-4">
                   {currentQ.options?.map((opt: string, i: number) => (
                     <button
