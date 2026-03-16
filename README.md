@@ -1,4 +1,3 @@
-
 # EduQuiz Architect | AI-Driven Adaptive Learning Platform
 
 EduQuiz Architect is a high-performance educational platform that transforms static content into interactive, adaptive learning experiences using **Generative AI (Gemini 2.5 Flash)** and **Real-time Data Persistence (Firebase)**.
@@ -24,7 +23,7 @@ EduQuiz Architect is a high-performance educational platform that transforms sta
 ### 1. Prerequisites
 - Node.js (v18+)
 - A Firebase Project (with Firestore and Auth enabled)
-- A Google AI API Key
+- A Google AI API Key (Gemini)
 
 ### 2. Installation
 ```bash
@@ -32,7 +31,9 @@ npm install
 ```
 
 ### 3. Environment Configuration
-Create a `.env` file in the root directory and add your keys (see `.env.example`).
+1. Create a `.env` file in the root directory.
+2. Copy the contents from `.env.example` into `.env`.
+3. Replace `your_api_key_here` with your actual Google AI API Key.
 
 ### 4. Running the Project
 ```bash
@@ -44,7 +45,7 @@ npm run genkit:dev
 ```
 
 ### 5. Testing the Pipeline
-1. **Ingestion**: Navigate to `/dashboard`, upload a `.txt` file, and click "Launch Intelligence Pipeline".
+1. **Ingestion**: Navigate to `/dashboard`, upload a `.txt` or `.md` file, and click "Launch Intelligence Pipeline".
 2. **Quiz**: Navigate to `/quiz` to take an adaptive assessment.
 3. **Monitoring**: Visit `/admin` to see real-time analytics of student answers across the platform.
 
