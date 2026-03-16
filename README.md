@@ -43,7 +43,7 @@ npm run dev
 npm run genkit:dev
 ```
 
-## 🧪 Testing
+### 5. Testing the Pipeline
 1. **Ingestion**: Navigate to `/dashboard`, upload a `.txt` file, and click "Launch Intelligence Pipeline".
 2. **Quiz**: Navigate to `/quiz` to take an adaptive assessment.
 3. **Monitoring**: Visit `/admin` to see real-time analytics of student answers across the platform.
