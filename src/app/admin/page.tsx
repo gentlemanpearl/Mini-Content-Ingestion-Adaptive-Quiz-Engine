@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -44,7 +45,6 @@ export default function AdminActivityPage() {
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
 
-  // Global monitoring queries - only created if user is authenticated
   const questionsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(db, 'quizQuestions'));
@@ -64,7 +64,6 @@ export default function AdminActivityPage() {
   const { data: students } = useCollection(studentsQuery);
   const { data: recentAnswers } = useCollection(recentAnswersQuery);
 
-  // Derived Analytics
   const stats = useMemo(() => {
     if (!recentAnswers) return { correct: 0, total: 0, rate: 0 };
     const correct = recentAnswers.filter(a => a.isCorrect).length;
@@ -99,7 +98,7 @@ export default function AdminActivityPage() {
       <div className="min-h-screen bg-secondary/10">
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <p className="text-muted-foreground animate-pulse">Verifying credentials...</p>
+          <p className="text-muted-foreground animate-pulse font-headline">Syncing Administrator Data...</p>
         </div>
       </div>
     );
@@ -138,7 +137,6 @@ export default function AdminActivityPage() {
           </div>
         </header>
 
-        {/* Top Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
             { label: "Total Students", value: students?.length || 0, icon: Users, color: "text-blue-600" },
@@ -163,7 +161,6 @@ export default function AdminActivityPage() {
         </div>
 
         <div className="grid lg:grid-cols-12 gap-8">
-          {/* Recent Activity Feed */}
           <Card className="lg:col-span-8 border-none shadow-xl">
             <CardHeader className="border-b bg-white/50">
               <div className="flex justify-between items-center">
@@ -202,11 +199,6 @@ export default function AdminActivityPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <Badge variant="outline" className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
-                        ID: {ans.id.substring(4, 10)}
-                      </Badge>
-                    </div>
                   </div>
                 ))}
                 {!recentAnswers?.length && (
@@ -219,7 +211,6 @@ export default function AdminActivityPage() {
             </CardContent>
           </Card>
 
-          {/* Side Charts */}
           <div className="lg:col-span-4 space-y-8">
             <Card className="border-none shadow-xl overflow-hidden">
               <CardHeader className="bg-primary text-primary-foreground">
@@ -246,16 +237,6 @@ export default function AdminActivityPage() {
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
-              <div className="bg-secondary/20 p-4 grid grid-cols-2 text-center text-sm">
-                <div className="border-r">
-                  <p className="font-bold text-accent">{stats.correct}</p>
-                  <p className="text-xs text-muted-foreground">Correct</p>
-                </div>
-                <div>
-                  <p className="font-bold text-destructive">{stats.total - stats.correct}</p>
-                  <p className="text-xs text-muted-foreground">Incorrect</p>
-                </div>
-              </div>
             </Card>
 
             <Card className="border-none shadow-xl">
@@ -271,7 +252,6 @@ export default function AdminActivityPage() {
                     <YAxis fontSize={12} tickLine={false} axisLine={false} />
                     <RechartsTooltip 
                       cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }}
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                     />
                     <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>

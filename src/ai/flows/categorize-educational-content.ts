@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow for categorizing educational content from a text chunk.
@@ -27,7 +28,7 @@ const prompt = ai.definePrompt({
   name: 'categorizeEducationalContentPrompt',
   input: { schema: CategorizeEducationalContentInputSchema },
   output: { schema: CategorizeEducationalContentOutputSchema },
-  prompt: `You are an expert educator. Analyze the provided text chunk and determine its grade level, subject, and specific topic.
+  prompt: `You are an expert educator. Analyze the provided text chunk and determine its grade level (integer between 1-12), subject (e.g., Biology, World History, Algebra), and a specific topic.
 
 Text Content:
 {{{textChunk}}}

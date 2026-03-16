@@ -1,23 +1,7 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * DATABASE DOCUMENTATION
-     * 
-     * Core Philosophy:
-     * This ruleset implements a robust, owner-centric security model designed for an educational content 
-     * processing pipeline. It segregates administrative data (SourceDocuments, ContentChunks) from 
-     * public-facing data (QuizQuestions) and private student progress (StudentAnswers).
-     * 
-     * Data Structure:
-     * 1. Admin/Creator Space: /users/{userId}/... - Contains uploaded PDFs and extracted text chunks.
-     * 2. Public Content: /quizQuestions/{id} - Generated educational content accessible to all students.
-     * 3. Student Space: /students/{externalAuthId}/... - Private student profiles and their quiz history.
-     */
-
-    // --- Global Helper Functions ---
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -26,46 +10,28 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    // --- Collection Rules ---
-
     match /users/{userId}/sourceDocuments/{sourceDocumentId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == sourceDocumentId;
-      allow update, delete: if isExistingOwner(userId);
-
-      match /contentChunks/{contentChunkId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.sourceDocumentId == sourceDocumentId;
-        allow update, delete: if isExistingOwner(userId);
+      allow get, list, create, update, delete: if isOwner(userId);
+      match /contentChunks/{chunkId} {
+        allow get, list, create, update, delete: if isOwner(userId);
       }
     }
 
-    match /quizQuestions/{quizQuestionId} {
+    match /quizQuestions/{questionId} {
       allow get, list: if isSignedIn();
-      allow create: if isSignedIn(); 
-      allow update, delete: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
 
-    match /students/{externalAuthId} {
-      // Allow authenticated users to list for the Admin Monitor
+    match /students/{studentId} {
       allow get, list: if isSignedIn();
-      allow create: if isOwner(externalAuthId);
-      allow update: if isExistingOwner(externalAuthId);
-      allow delete: if false;
-
-      match /studentAnswers/{studentAnswerId} {
-        allow get, list: if isOwner(externalAuthId) || isSignedIn();
-        allow create: if isOwner(externalAuthId);
-        allow update, delete: if isExistingOwner(externalAuthId);
+      allow create, update: if isOwner(studentId);
+      match /studentAnswers/{answerId} {
+        allow get, list: if isSignedIn();
+        allow create, update: if isOwner(studentId);
       }
     }
 
-    // Collection Group rule for Admin Activity Monitoring
-    match /{path=**}/studentAnswers/{studentAnswerId} {
+    match /{path=**}/studentAnswers/{answerId} {
       allow list: if isSignedIn();
     }
   }

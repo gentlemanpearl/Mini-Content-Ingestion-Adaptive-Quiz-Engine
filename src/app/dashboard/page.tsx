@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -11,13 +12,11 @@ import {
   Play, 
   Upload, 
   Trash2, 
-  Clock, 
   FileText, 
   FileUp, 
   Sparkles, 
   Loader2, 
-  CheckCircle2,
-  AlertCircle
+  CheckCircle2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 

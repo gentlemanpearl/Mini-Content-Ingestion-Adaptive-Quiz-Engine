@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow for generating diverse quiz questions from content chunks.
@@ -48,7 +49,8 @@ Instructions:
 1. Include a mix of MCQ, True/False, and Fill-in-the-blank questions.
 2. For MCQ, provide exactly 4 distinct options.
 3. For Fill-in-the-blank, use a single underscore '_' for the blank.
-4. Ensure the difficulty matches the content complexity.`,
+4. Ensure the difficulty matches the content complexity.
+5. The answer field must contain the exact string value of the correct option for MCQs, "True" or "False" for True/False, and the missing word for Fill-in-the-blank.`,
 });
 
 const generateQuizQuestionsFlow = ai.defineFlow(
