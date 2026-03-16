@@ -1,30 +1,29 @@
 # EduQuiz Architect | AI-Driven Adaptive Learning Platform
 
-EduQuiz Architect is a sophisticated educational tool that transforms static text and documents into interactive, adaptive learning experiences using Generative AI.
+EduQuiz Architect is a high-performance educational tool that transforms static text documents into interactive, adaptive learning experiences using Generative AI (Gemini 2.5 Flash) and real-time data persistence (Firebase).
 
 ## 🚀 Key Features
 
-- **Smart Content Ingestion**: Automated pipeline using **Gemini 2.5 Flash** (via Google Genkit) to chunk, categorize, and tag educational content.
-- **AI Quiz Generation**: Dynamically generates Multiple Choice, True/False, and Fill-in-the-blank questions directly from source material.
+- **Smart Content Ingestion**: Automated pipeline using **Genkit** to chunk, categorize, and tag educational content by grade, subject, and topic.
+- **AI Quiz Generation**: Dynamically generates diverse questions (MCQ, True/False, Fill-in-the-blank) directly from source material.
 - **Adaptive Learning Engine**: A real-time assessment interface that adjusts difficulty based on a live "Cognitive Profile" stored in Firestore.
-- **Admin Activity Monitor**: A high-level dashboard for educators to track student performance and system health using Firestore Collection Groups.
-- **Professional UI/UX**: Built with Next.js 15, ShadCN UI, and Tailwind CSS.
+- **Admin Activity Monitor**: A dashboard for educators to track system health and student performance using Firestore Collection Groups.
+- **Professional UI**: Built with Next.js 15, ShadCN UI, and Tailwind CSS, featuring animated ingestion triggers.
 
 ## 🏗️ Architecture
 
 - **Frontend**: Next.js 15 (App Router) with React 19.
-- **AI Engine**: **Google Genkit** + **Gemini 2.5 Flash**. Prompts are defined as "Flows" for structured, type-safe AI outputs.
-- **Database**: **Cloud Firestore** for real-time synchronization of educational content and student progress.
-- **Authentication**: **Firebase Auth** supporting Google Sign-In and Anonymous sessions.
-- **Styling**: Tailwind CSS + ShadCN UI components for a modern, responsive interface.
-- **Analytics**: Recharts for visualizing student performance in the Admin Monitor.
+- **AI Engine**: **Google Genkit** + **Gemini 2.5 Flash**. Prompts are defined as type-safe "Flows".
+- **Database**: **Cloud Firestore** for real-time synchronization.
+- **Authentication**: **Firebase Auth** (Google & Anonymous).
+- **Styling**: Tailwind CSS + ShadCN UI.
 
 ## 🛠️ Setup Instructions
 
 ### 1. Prerequisites
-- Node.js (v18 or higher)
-- A Firebase Project ([Firebase Console](https://console.firebase.google.com/))
-- A Google AI API Key (from [Google AI Studio](https://aistudio.google.com/))
+- Node.js (v18+)
+- A Firebase Project
+- A Google AI API Key
 
 ### 2. Installation
 ```bash
@@ -37,26 +36,21 @@ npm install
 ```
 
 ### 3. Environment Configuration
-Create a `.env` file in the root directory and add your API key:
+Create a `.env` file in the root directory:
 ```env
 GOOGLE_GENAI_API_KEY=your_api_key_here
 ```
-Refer to `.env.example` for the required variables.
 
-### 4. Firebase Configuration
-Update the `src/firebase/config.ts` file with your Firebase project credentials obtained from the Firebase Console.
-
-### 5. Running the Project
+### 4. Running the Project
 ```bash
 # Start the development server
 npm run dev
 ```
-The app will be available at `http://localhost:3000`.
 
 ## 🧪 Testing
-- **Ingestion**: Navigate to `/dashboard`, upload a `.txt` file, and click "Launch Intelligence Pipeline".
-- **Quiz**: Navigate to `/quiz` to take an adaptive assessment generated from your content.
-- **Monitoring**: Visit `/admin` to see real-time performance analytics.
+1. **Ingestion**: Navigate to `/dashboard`, upload a `.txt` file, and click "Launch Intelligence Pipeline".
+2. **Quiz**: Navigate to `/quiz` to take an adaptive assessment.
+3. **Monitoring**: Visit `/admin` to see real-time analytics.
 
 ## 🔐 Security
-The project implements an **Owner-Centric Security Model** via Firestore Security Rules, ensuring students only access their own profiles while administrators have cross-collection monitoring capabilities.
+The project uses an **Owner-Centric Security Model** via Firestore Security Rules, ensuring data privacy and integrity.
