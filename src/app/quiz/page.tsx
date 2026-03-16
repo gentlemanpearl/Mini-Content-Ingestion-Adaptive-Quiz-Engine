@@ -23,7 +23,6 @@ export default function QuizPage() {
   const [feedback, setFeedback] = useState<any>(null);
   const [quizFinished, setQuizFinished] = useState(false);
 
-  // Memoize Firestore references for real-time quiz data
   const questionsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(db, 'quizQuestions'), limit(20));
@@ -61,7 +60,6 @@ export default function QuizPage() {
 
       setDocumentNonBlocking(answerRef, answerData, { merge: true });
 
-      // Update Profile Skill Level
       const delta = isCorrect ? 5 : -5;
       const newSkill = Math.max(0, Math.min(100, skillLevel + delta));
       

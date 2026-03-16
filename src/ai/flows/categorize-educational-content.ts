@@ -1,8 +1,4 @@
-
 'use server';
-/**
- * @fileOverview A Genkit flow for categorizing educational content from a text chunk.
- */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
