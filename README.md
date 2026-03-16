@@ -1,56 +1,40 @@
-cd your-local-project-folder
-git init
-git remote add origin https://github.com/gentlemanpearl/Mini-Content-Ingestion-Adaptive-Quiz-Engine.git
-# EduQuiz Architect | AI-Driven Adaptive Learning Platform
+# EduQuiz Architect | AI-Driven Adaptive Learning
 
-EduQuiz Architect is a high-performance educational platform that transforms static content into interactive, adaptive learning experiences using **Generative AI (Gemini 2.5 Flash)** and **Real-time Data Persistence (Firebase)**.
+EduQuiz Architect is an educational platform that transforms static documents into interactive learning experiences using Generative AI and real-time data persistence.
 
-## 🚀 Key Features
+## Features
+- **Smart Ingestion**: Automated pipeline using Google Genkit to chunk and categorize content.
+- **AI Quiz Generation**: Dynamically generates diverse questions directly from source material.
+- **Adaptive Learning**: Real-time assessment interface that adjusts difficulty based on student performance.
+- **Activity Monitor**: Dashboard for tracking system health and student performance.
 
-- **Smart Content Ingestion**: Automated pipeline using **Google Genkit** to chunk, categorize, and tag educational content by grade, subject, and topic.
-- **AI Quiz Generation**: Dynamically generates diverse questions (MCQ, True/False, Fill-in-the-blank) directly from source material using structured LLM output.
-- **Adaptive Learning Engine**: A real-time assessment interface that adjusts difficulty based on a live "Cognitive Profile" stored in Firestore.
-- **Admin Activity Monitor**: A real-time dashboard for educators to track system health and student performance using Firestore Collection Groups.
-- **Professional UI**: Built with Next.js 15, ShadCN UI, and Tailwind CSS, featuring high-fidelity animated interaction triggers.
+## Tech Stack
+- **Frontend**: Next.js 15, React 19, Tailwind CSS, ShadCN UI.
+- **Backend**: Firebase Auth, Cloud Firestore.
+- **AI Engine**: Google Genkit + Gemini 2.5 Flash.
 
-## 🏗️ Architecture
-
-- **Frontend**: Next.js 15 (App Router) with React 19.
-- **AI Engine**: **Google Genkit** + **Gemini 2.5 Flash**. Prompts are defined as type-safe "Flows".
-- **Database**: **Cloud Firestore** for real-time synchronization and low-latency updates.
-- **Authentication**: **Firebase Auth** (Google & Anonymous).
-- **Styling**: Tailwind CSS + ShadCN UI.
-
-## 🛠️ Setup Instructions
+## Setup Instructions
 
 ### 1. Prerequisites
 - Node.js (v18+)
-- A Firebase Project (with Firestore and Auth enabled)
-- A Google AI API Key (Gemini)
+- Firebase Project with Firestore and Auth enabled.
+- Google AI API Key (Gemini).
 
 ### 2. Installation
 ```bash
 npm install
 ```
 
-### 3. Environment Configuration
-1. Create a `.env` file in the root directory.
-2. Copy the contents from `.env.example` into `.env`.
-3. Replace `your_api_key_here` with your actual Google AI API Key.
-
-### 4. Running the Project
-```bash
-# Start the development server
-npm run dev
-
-# Start Genkit Developer UI (Optional)
-npm run genkit:dev
+### 3. Environment Variables
+Create a `.env` file in the root directory and add:
+```env
+GOOGLE_GENAI_API_KEY=your_api_key_here
 ```
 
-### 5. Testing the Pipeline
-1. **Ingestion**: Navigate to `/dashboard`, upload a `.txt` or `.md` file, and click "Launch Intelligence Pipeline".
-2. **Quiz**: Navigate to `/quiz` to take an adaptive assessment.
-3. **Monitoring**: Visit `/admin` to see real-time analytics of student answers across the platform.
+### 4. Running the App
+```bash
+npm run dev
+```
 
 ---
 Built for the Peblo Challenge.

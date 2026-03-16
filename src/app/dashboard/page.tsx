@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { 
@@ -187,13 +187,12 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
               <Database className="h-8 w-8 text-accent" />
-              Creator Dashboard
+              Creator Portal
             </h1>
-            <p className="text-muted-foreground">Manage your educational repository.</p>
           </div>
           <Badge variant="outline" className="bg-white px-4 py-2 border-dashed">
             <Sparkles className="h-4 w-4 mr-2 text-accent" />
-            Gemini 2.5 Flash Pipeline
+            Gemini Pipeline
           </Badge>
         </header>
 
@@ -283,7 +282,7 @@ export default function DashboardPage() {
                 className="w-full h-14 text-lg font-bold shadow-xl transition-all"
               >
                 {isIngesting ? <Loader2 className="animate-spin h-6 w-6" /> : <Sparkles className="h-6 w-6 mr-2" />}
-                {isIngesting ? "Extracting..." : "Launch Intelligence Pipeline"}
+                {isIngesting ? "Extracting..." : "Launch Pipeline"}
               </Button>
             </CardContent>
           </Card>

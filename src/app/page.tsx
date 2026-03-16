@@ -1,17 +1,14 @@
-
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { BrainCircuit, FileText, Database, GraduationCap, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { BrainCircuit, FileText, GraduationCap, ArrowRight, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="py-20 px-4">
           <div className="max-w-4xl mx-auto text-center space-y-6">
             <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-accent/20 border border-accent/30 text-accent-foreground text-sm font-medium mb-4">
@@ -22,7 +19,7 @@ export default function LandingPage() {
               Transform Educational Content Into <span className="text-accent">Intelligent Quizzes</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Our AI-driven pipeline processes PDFs, structures content, and generates adaptive quizzes that evolve with every student's response.
+              Our AI-driven pipeline processes documents, structures content, and generates adaptive quizzes that evolve with every student's response.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
               <Link href="/dashboard">
@@ -40,7 +37,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Feature Grid */}
         <section className="py-20 bg-secondary/30">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid md:grid-cols-3 gap-8">
@@ -51,7 +47,7 @@ export default function LandingPage() {
                   </div>
                   <CardTitle>Content Ingestion</CardTitle>
                   <CardDescription>
-                    Automated PDF processing with intelligent text extraction and categorization.
+                    Automated document processing with intelligent text extraction and categorization.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
