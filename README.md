@@ -1,3 +1,6 @@
+cd your-local-project-folder
+git init
+git remote add origin https://github.com/gentlemanpearl/Mini-Content-Ingestion-Adaptive-Quiz-Engine.git
 # EduQuiz Architect | AI-Driven Adaptive Learning Platform
 
 EduQuiz Architect is a high-performance educational platform that transforms static content into interactive, adaptive learning experiences using **Generative AI (Gemini 2.5 Flash)** and **Real-time Data Persistence (Firebase)**.
