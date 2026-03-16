@@ -17,7 +17,7 @@ export type GenerateQuizQuestionsInput = z.infer<typeof GenerateQuizQuestionsInp
 const QuizQuestionSchema = z.object({
   question: z.string().describe('The question text.'),
   type: z.enum(['MCQ', 'True/False', 'Fill in the blank']).describe('Question type.'),
-  options: z.array(z.string()).optional().describe('Options for MCQ.'),
+  options: z.array(z.string()).optional().describe('Options for MCQ. Provide exactly 4.'),
   answer: z.string().describe('The correct answer.'),
   difficulty: z.enum(['easy', 'medium', 'hard']).describe('Difficulty level.'),
 });
@@ -33,17 +33,22 @@ const prompt = ai.definePrompt({
   name: 'generateQuizQuestionsPrompt',
   input: { schema: GenerateQuizQuestionsInputSchema },
   output: { schema: GenerateQuizQuestionsOutputSchema },
-  prompt: `You are an expert quiz creator. Generate 3-5 diverse questions from this content:
+  prompt: `You are an expert quiz creator. Generate 3-5 high-quality, diverse questions from the following content.
 
 Subject: {{{subject}}}
 Topic: {{{topic}}}
 Grade: {{{grade}}}
+
 Content:
 """
 {{{text}}}
 """
 
-Include MCQ, True/False, and Fill-in-the-blank questions. For MCQ, provide exactly 4 options.`,
+Instructions:
+1. Include a mix of MCQ, True/False, and Fill-in-the-blank questions.
+2. For MCQ, provide exactly 4 distinct options.
+3. For Fill-in-the-blank, use a single underscore '_' for the blank.
+4. Ensure the difficulty matches the content complexity.`,
 });
 
 const generateQuizQuestionsFlow = ai.defineFlow(
