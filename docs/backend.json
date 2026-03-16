@@ -1,334 +1,101 @@
-
 {
   "entities": {
     "SourceDocument": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SourceDocument",
-      "type": "object",
       "description": "Represents an uploaded PDF file from which educational content is extracted and processed.",
+      "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the SourceDocument entity."
-        },
-        "filename": {
-          "type": "string",
-          "description": "Original filename of the uploaded PDF document."
-        },
-        "uploadDate": {
-          "type": "string",
-          "description": "Timestamp when the document was uploaded.",
-          "format": "date-time"
-        },
-        "fileSizeKB": {
-          "type": "number",
-          "description": "Size of the uploaded document in kilobytes."
-        },
-        "mimeType": {
-          "type": "string",
-          "description": "MIME type of the uploaded file, e.g., 'application/pdf'."
-        },
-        "status": {
-          "type": "string",
-          "description": "Current processing status of the document (e.g., 'uploaded', 'processing', 'processed', 'failed')."
-        }
+        "id": { "type": "string" },
+        "filename": { "type": "string" },
+        "uploadDate": { "type": "string", "format": "date-time" },
+        "fileSizeKB": { "type": "number" },
+        "mimeType": { "type": "string" },
+        "status": { "type": "string", "enum": ["uploaded", "processing", "processed", "failed"] }
       },
-      "required": [
-        "id",
-        "filename",
-        "uploadDate",
-        "fileSizeKB",
-        "mimeType",
-        "status"
-      ]
+      "required": ["id", "filename", "uploadDate", "fileSizeKB", "mimeType", "status"]
     },
     "ContentChunk": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ContentChunk",
+      "description": "Represents a segment of text extracted from a SourceDocument.",
       "type": "object",
-      "description": "Represents a manageable segment of text extracted and preprocessed from a SourceDocument.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ContentChunk entity."
-        },
-        "sourceDocumentId": {
-          "type": "string",
-          "description": "Reference to the SourceDocument from which this chunk was extracted. (Relationship: SourceDocument 1:N ContentChunk)"
-        },
-        "chunkIndex": {
-          "type": "number",
-          "description": "The sequential index of this chunk within its source document."
-        },
-        "grade": {
-          "type": "number",
-          "description": "The target grade level for the educational content in this chunk."
-        },
-        "subject": {
-          "type": "string",
-          "description": "The subject category of the content (e.g., 'Math', 'Science', 'English')."
-        },
-        "topic": {
-          "type": "string",
-          "description": "A specific topic within the subject covered by this chunk (e.g., 'Shapes', 'Plants', 'Grammar')."
-        },
-        "text": {
-          "type": "string",
-          "description": "The cleaned and extracted text content of this chunk."
-        },
-        "wordCount": {
-          "type": "number",
-          "description": "The number of words in the text content."
-        },
-        "extractionDate": {
-          "type": "string",
-          "description": "Timestamp when the content chunk was extracted.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "sourceDocumentId": { "type": "string" },
+        "chunkIndex": { "type": "number" },
+        "grade": { "type": "number" },
+        "subject": { "type": "string" },
+        "topic": { "type": "string" },
+        "text": { "type": "string" },
+        "extractionDate": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "sourceDocumentId",
-        "chunkIndex",
-        "grade",
-        "subject",
-        "topic",
-        "text",
-        "extractionDate"
-      ]
+      "required": ["id", "sourceDocumentId", "chunkIndex", "grade", "subject", "topic", "text", "extractionDate"]
     },
     "QuizQuestion": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "QuizQuestion",
+      "description": "Represents a generated quiz question.",
       "type": "object",
-      "description": "Represents a quiz question generated from a ContentChunk using an LLM.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the QuizQuestion entity."
-        },
-        "sourceChunkId": {
-          "type": "string",
-          "description": "Reference to the ContentChunk from which this question was generated. (Relationship: ContentChunk 1:N QuizQuestion)"
-        },
-        "questionText": {
-          "type": "string",
-          "description": "The text of the quiz question."
-        },
-        "questionType": {
-          "type": "string",
-          "description": "The type of the quiz question (e.g., MCQ, True/False, Fill-in-the-blank)."
-        },
-        "options": {
-          "type": "array",
-          "description": "An array of possible answer options for Multiple Choice Questions. Will be empty or null for other question types.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "correctAnswer": {
-          "type": "string",
-          "description": "The correct answer to the quiz question."
-        },
-        "difficulty": {
-          "type": "string",
-          "description": "The initial difficulty level assigned to the question (e.g., 'easy', 'medium', 'hard')."
-        },
-        "generatedDate": {
-          "type": "string",
-          "description": "Timestamp when the question was generated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "sourceChunkId": { "type": "string" },
+        "questionText": { "type": "string" },
+        "questionType": { "type": "string", "enum": ["MCQ", "True/False", "Fill in the blank"] },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "correctAnswer": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+        "generatedDate": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "sourceChunkId",
-        "questionText",
-        "questionType",
-        "correctAnswer",
-        "difficulty",
-        "generatedDate"
-      ]
+      "required": ["id", "sourceChunkId", "questionText", "questionType", "correctAnswer", "difficulty", "generatedDate"]
     },
     "Student": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Student",
+      "description": "Represents a student and their cognitive profile.",
       "type": "object",
-      "description": "Represents a student interacting with the quizzes. Designed to store minimal information required for tracking progress, assuming external authentication.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Student entity."
-        },
-        "externalAuthId": {
-          "type": "string",
-          "description": "The ID of the student from an external authentication system, linking this record to an external user account."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the student record was created.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "currentSkillLevel": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "externalAuthId",
-        "createdAt"
-      ]
+      "required": ["id", "currentSkillLevel"]
     },
     "StudentAnswer": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StudentAnswer",
+      "description": "Records a student's answer to a quiz question.",
       "type": "object",
-      "description": "Records a student's submitted answer to a specific quiz question, used for tracking performance and adaptive difficulty.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the StudentAnswer entity."
-        },
-        "studentId": {
-          "type": "string",
-          "description": "Reference to the Student who submitted the answer. (Relationship: Student 1:N StudentAnswer)"
-        },
-        "quizQuestionId": {
-          "type": "string",
-          "description": "Reference to the QuizQuestion that was answered. (Relationship: QuizQuestion 1:N StudentAnswer)"
-        },
-        "submittedAnswer": {
-          "type": "string",
-          "description": "The answer submitted by the student."
-        },
-        "isCorrect": {
-          "type": "boolean",
-          "description": "Indicates whether the submitted answer was correct based on the 'correctAnswer' of the quiz question."
-        },
-        "submittedAt": {
-          "type": "string",
-          "description": "Timestamp when the answer was submitted.",
-          "format": "date-time"
-        },
-        "difficultyAtTimeOfAnswer": {
-          "type": "string",
-          "description": "The perceived difficulty of the question at the moment the student answered it, used for adaptive logic (e.g., 'easy', 'medium', 'hard')."
-        }
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "quizQuestionId": { "type": "string" },
+        "submittedAnswer": { "type": "string" },
+        "isCorrect": { "type": "boolean" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "difficultyAtTimeOfAnswer": { "type": "string" }
       },
-      "required": [
-        "id",
-        "studentId",
-        "quizQuestionId",
-        "submittedAnswer",
-        "isCorrect",
-        "submittedAt",
-        "difficultyAtTimeOfAnswer"
-      ]
+      "required": ["id", "studentId", "quizQuestionId", "submittedAnswer", "isCorrect", "submittedAt", "difficultyAtTimeOfAnswer"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous",
-      "google.com"
-    ]
+    "providers": ["google.com", "anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}/sourceDocuments/{sourceDocumentId}",
-        "definition": {
-          "entityName": "SourceDocument",
-          "schema": {
-            "$ref": "#/backend/entities/SourceDocument"
-          },
-          "description": "Stores metadata for uploaded PDF documents. Documents in this collection are owned by the 'userId' specified in the path. Includes denormalized 'ownerId' field (matching 'userId') for explicit authorization.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns and uploaded the source document. Matches request.auth.uid."
-            },
-            {
-              "name": "sourceDocumentId",
-              "description": "The unique identifier for the source document."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/sourceDocuments/{sourceDocumentId}/contentChunks/{contentChunkId}",
-        "definition": {
-          "entityName": "ContentChunk",
-          "schema": {
-            "$ref": "#/backend/entities/ContentChunk"
-          },
-          "description": "Stores manageable segments of text extracted from a SourceDocument. Includes denormalized 'ownerId' (matching the parent 'userId') and 'sourceDocumentId' for authorization independence and traceability.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns the parent source document. Matches request.auth.uid."
-            },
-            {
-              "name": "sourceDocumentId",
-              "description": "The unique identifier of the parent source document."
-            },
-            {
-              "name": "contentChunkId",
-              "description": "The unique identifier for the content chunk."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/quizQuestions/{quizQuestionId}",
-        "definition": {
-          "entityName": "QuizQuestion",
-          "schema": {
-            "$ref": "#/backend/entities/QuizQuestion"
-          },
-          "description": "Stores quiz questions generated from content chunks. These documents are publicly readable by students. For management, they include denormalized 'ownerId' (from the SourceDocument owner), 'sourceDocumentId', 'sourceChunkId', 'grade', and 'subject' to facilitate efficient queries and authorization independence for write operations.",
-          "params": [
-            {
-              "name": "quizQuestionId",
-              "description": "The unique identifier for the quiz question."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/students/{externalAuthId}",
-        "definition": {
-          "entityName": "Student",
-          "schema": {
-            "$ref": "#/backend/entities/Student"
-          },
-          "description": "Stores student profile information. The document ID ('externalAuthId') for each student directly corresponds to their Firebase Authentication UID, enforcing path-based ownership.",
-          "params": [
-            {
-              "name": "externalAuthId",
-              "description": "The unique identifier of the student, which is their Firebase Authentication UID (request.auth.uid)."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/students/{externalAuthId}/studentAnswers/{studentAnswerId}",
-        "definition": {
-          "entityName": "StudentAnswer",
-          "schema": {
-            "$ref": "#/backend/entities/StudentAnswer"
-          },
-          "description": "Records a student's answer to a specific quiz question. Documents in this subcollection are owned by the 'externalAuthId' in the path, ensuring only the authenticated student can manage their own answers.",
-          "params": [
-            {
-              "name": "externalAuthId",
-              "description": "The unique identifier of the student who submitted the answer. Matches request.auth.uid."
-            },
-            {
-              "name": "studentAnswerId",
-              "description": "The unique identifier for the student's answer record."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The recommended Firestore structure is designed with a strong emphasis on Authorization Independence, Structural Segregation, and Path-Based Ownership."
+    "/users/{userId}/sourceDocuments/{sourceDocumentId}": {
+      "schema": { "$ref": "#/entities/SourceDocument" },
+      "description": "Admin document repository."
+    },
+    "/users/{userId}/sourceDocuments/{sourceDocumentId}/contentChunks/{contentChunkId}": {
+      "schema": { "$ref": "#/entities/ContentChunk" },
+      "description": "Extracted text segments."
+    },
+    "/quizQuestions/{quizQuestionId}": {
+      "schema": { "$ref": "#/entities/QuizQuestion" },
+      "description": "Global question pool."
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Student cognitive profiles."
+    },
+    "/students/{studentId}/studentAnswers/{answerId}": {
+      "schema": { "$ref": "#/entities/StudentAnswer" },
+      "description": "Individual student answer history."
+    }
   }
 }

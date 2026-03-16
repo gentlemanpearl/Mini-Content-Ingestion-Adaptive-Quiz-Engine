@@ -1,67 +1,32 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Sophisticated blue (#2E5DD8) primary */
     --primary: 224 68% 51%;
     --primary-foreground: 0 0% 100%;
-    
-    /* Vibrant cyan (#19CCE5) accent */
     --accent: 187 80% 50%;
     --accent-foreground: 224 68% 10%;
-    
-    /* Subtle off-white background (#E9EFF7) */
     --background: 214 45% 94%;
     --foreground: 224 68% 10%;
-    
     --card: 0 0% 100%;
     --card-foreground: 224 68% 10%;
-    
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 68% 10%;
-    
     --secondary: 214 30% 90%;
     --secondary-foreground: 224 68% 15%;
-    
     --muted: 214 30% 85%;
     --muted-foreground: 224 20% 40%;
-    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    
     --border: 214 30% 85%;
     --input: 214 30% 85%;
     --ring: 224 68% 51%;
-    
     --radius: 0.75rem;
-  }
-  
-  .dark {
-    --background: 224 68% 5%;
-    --foreground: 214 45% 94%;
-    --card: 224 68% 8%;
-    --card-foreground: 214 45% 94%;
-    --primary: 224 68% 60%;
-    --primary-foreground: 0 0% 100%;
-    --accent: 187 80% 40%;
-    --accent-foreground: 0 0% 100%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground font-body;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-headline tracking-tight;
-  }
-  code, pre {
-    @apply font-code;
-  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground font-body antialiased; }
+  h1, h2, h3, h4 { @apply font-headline tracking-tight; }
 }
